@@ -6,3 +6,4 @@ __pycache__/
 *.pyc
 workspace/runs/*
 !workspace/runs/.gitkeep
+*.egg-info/
