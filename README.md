@@ -1,1 +1,57 @@
 # mimir-webwright
+
+Webwright-based web agent framework for Mimir. This repository provides a minimal Python harness for the classic loop of **model → bash → observe**, aimed at generating and running Playwright-based automation scripts from task prompts.
+
+## Features
+
+- LiteLLM/OpenAI-compatible model adapter
+- Workspace-aware shell execution environment
+- Iterative runner loop for agent-style task execution
+- Example task prompt for pisos.com scraping script generation
+- Tests with mocks so CI runs without a real LiteLLM endpoint
+
+## Project layout
+
+```text
+src/mimir_webwright/
+├── environment.py
+├── model.py
+├── runner.py
+└── tasks/
+    └── pisos_scraper.py
+```
+
+## Quickstart
+
+```bash
+python3 -m venv .venv
+.venv/bin/pip install -e '.[dev]'
+.venv/bin/ruff check src tests
+.venv/bin/pytest tests/ -v
+```
+
+## Usage example
+
+```python
+from mimir_webwright.runner import Runner
+from mimir_webwright.tasks.pisos_scraper import get_task
+
+runner = Runner()
+result = runner.run(get_task())
+print(result)
+```
+
+## Configuration
+
+The model client reads `LITELLM_API_KEY` from the environment. If unset, it uses the placeholder value `dummy`, which is sufficient for local tests that mock external calls.
+
+Default endpoint settings:
+
+- Base URL: `http://localhost:4000`
+- Model: `gpt-5.4`
+
+## Notes
+
+- `workspace/scripts/` is intended for generated Playwright scripts.
+- `workspace/runs/` stores per-run artifacts and is gitignored.
+- This repository ships the harness and task prompt only; it does not perform live scraping during tests or CI.
