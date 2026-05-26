@@ -1,0 +1,2 @@
+[console_scripts]
+mimir-webwright = mimir_webwright.runner:app

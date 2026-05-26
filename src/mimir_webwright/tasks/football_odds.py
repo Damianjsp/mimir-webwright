@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import json
-from dataclasses import asdict, dataclass
+from dataclasses import asdict, dataclass, field
 from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any, Protocol
@@ -21,7 +21,7 @@ class FootballOdds:
     odds_away: float | None
     match_url: str
     source: str = "sofascore"
-    scraped_at_utc: str = datetime.now(tz=UTC).isoformat()
+    scraped_at_utc: str = field(default_factory=lambda: datetime.now(tz=UTC).isoformat())
 
 
 class SupportsWriteText(Protocol):

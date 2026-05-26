@@ -8,6 +8,8 @@ from rich.console import Console
 from mimir_webwright.environment import WorkspaceEnvironment
 from mimir_webwright.tasks.football_odds import (
     DEFAULT_SCRIPT_NAME as FOOTBALL_SCRIPT_NAME,
+)
+from mimir_webwright.tasks.football_odds import (
     ensure_generated_script as ensure_football_script,
 )
 from mimir_webwright.tasks.pisos_scraper import (
@@ -82,16 +84,18 @@ def football_odds_command(
     run_paths = environment.prepare_run("football_odds")
     script_path = ensure_football_script(run_paths.scripts_dir)
 
+    cli_args = ["--headful"] if headful else []
     completed = environment.run_python_script(
         script_path,
         run_paths,
-        [*( ["--headful"] if headful else [])],
+        cli_args,
     )
     if completed.returncode != 0:
         console.print(f"[red]Task failed.[/red] See {run_paths.log_path}")
         raise typer.Exit(code=completed.returncode)
 
-    console.print(f"[green]Script generated:[/green] {run_paths.scripts_dir / FOOTBALL_SCRIPT_NAME}")
+    script_output_path = run_paths.scripts_dir / FOOTBALL_SCRIPT_NAME
+    console.print(f"[green]Script generated:[/green] {script_output_path}")
     console.print(f"[green]JSON:[/green] {run_paths.run_dir / 'football_odds.json'}")
     console.print(f"[green]Log:[/green] {run_paths.log_path}")
 
