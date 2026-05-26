@@ -1,0 +1,16 @@
+[Unit]
+Description=mimir-webwright — Run football odds scraper daily at 08:00 Madrid time
+Documentation=https://github.com/Damianjsp/mimir-webwright
+
+[Timer]
+# Fire at 08:00 Europe/Madrid every day.
+# TZ= is supported by systemd ≥ 247 (Ubuntu 22.04+).
+OnCalendar=Europe/Madrid *-*-* 08:00:00
+# Spread activation up to 5 minutes
+RandomizedDelaySec=5min
+# Catch up if the machine was off at scheduled time
+Persistent=true
+Unit=mimir-webwright-football.service
+
+[Install]
+WantedBy=timers.target

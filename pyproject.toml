@@ -13,6 +13,9 @@ dependencies = [
     "playwright>=1.40",
 ]
 
+[project.scripts]
+mimir-webwright = "mimir_webwright.cli:main"
+
 [project.optional-dependencies]
 dev = [
     "pytest>=8.0",
