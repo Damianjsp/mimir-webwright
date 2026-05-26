@@ -59,8 +59,9 @@ class WorkspaceEnvironment:
         env["MIMIR_WEBWRIGHT_SCREENSHOTS_DIR"] = str(run_paths.screenshots_dir)
         env["MIMIR_WEBWRIGHT_RESULTS_JSON"] = str(run_paths.json_path)
         env["MIMIR_WEBWRIGHT_RESULTS_CSV"] = str(run_paths.csv_path)
+        python_bin = self.root_dir / ".venv" / "bin" / "python"
         process = subprocess.run(
-            ["python", str(script_path), *args],
+            [str(python_bin), str(script_path), *args],
             cwd=str(self.root_dir),
             env=env,
             check=False,
