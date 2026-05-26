@@ -14,7 +14,7 @@ dependencies = [
 ]
 
 [project.scripts]
-mimir-webwright-run = "mimir_webwright.cli:main"
+mimir-webwright = "mimir_webwright.cli:main"
 
 [project.optional-dependencies]
 dev = [

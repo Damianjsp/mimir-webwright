@@ -52,7 +52,7 @@ def _run(task: str) -> int:
 
 def main(argv: list[str] | None = None) -> NoReturn:
     parser = argparse.ArgumentParser(
-        prog="mimir-webwright-run",
+        prog="mimir-webwright",
         description="mimir-webwright task launcher",
     )
     sub = parser.add_subparsers(dest="cmd")
