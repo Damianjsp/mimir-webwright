@@ -6,6 +6,12 @@ import typer
 from rich.console import Console
 
 from mimir_webwright.environment import WorkspaceEnvironment
+from mimir_webwright.tasks.football_odds import (
+    DEFAULT_SCRIPT_NAME as FOOTBALL_SCRIPT_NAME,
+)
+from mimir_webwright.tasks.football_odds import (
+    ensure_generated_script as ensure_football_script,
+)
 from mimir_webwright.tasks.pisos_scraper import (
     DEFAULT_SCRIPT_NAME,
     PisosFilters,
@@ -64,13 +70,48 @@ def pisos_scraper_command(
     console.print(f"[green]Log:[/green] {run_paths.log_path}")
 
 
+@app.command("football-odds")
+def football_odds_command(
+    headful: bool = typer.Option(False, help="Run browser with UI"),
+) -> None:
+    """Generate+run the football odds scraper.
+
+    The generated Playwright script is stored in workspace/scripts/football_odds_scraper.py
+    and writes JSON to workspace/runs/<timestamp>/football_odds.json
+    """
+
+    environment = WorkspaceEnvironment(root_dir=_repo_root())
+    run_paths = environment.prepare_run("football_odds")
+    script_path = ensure_football_script(run_paths.scripts_dir)
+
+    cli_args = ["--headful"] if headful else []
+    completed = environment.run_python_script(
+        script_path,
+        run_paths,
+        cli_args,
+    )
+    if completed.returncode != 0:
+        console.print(f"[red]Task failed.[/red] See {run_paths.log_path}")
+        raise typer.Exit(code=completed.returncode)
+
+    script_output_path = run_paths.scripts_dir / FOOTBALL_SCRIPT_NAME
+    console.print(f"[green]Script generated:[/green] {script_output_path}")
+    console.print(f"[green]JSON:[/green] {run_paths.run_dir / 'football_odds.json'}")
+    console.print(f"[green]Log:[/green] {run_paths.log_path}")
+
+
 @app.command("run-task")
 def run_task(task_name: str) -> None:
     """Compatibility entrypoint for future task registry expansion."""
 
-    if task_name != "pisos-scraper":
-        raise typer.BadParameter("Only 'pisos-scraper' is implemented right now.")
-    pisos_scraper_command()
+    if task_name == "pisos-scraper":
+        pisos_scraper_command()
+        return
+    if task_name == "football-odds":
+        football_odds_command()
+        return
+
+    raise typer.BadParameter("Supported tasks: 'pisos-scraper', 'football-odds'.")
 
 
 if __name__ == "__main__":
