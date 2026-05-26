@@ -31,7 +31,7 @@ def test_runner_completes_loop_with_mocks() -> None:
     result = runner.run("test task")
 
     assert result["task"] == "test task"
-    assert result["final_result"] == "<done>completed</done>"
+    assert result["result"] == "<done>completed</done>"
     assert env.commands == ["echo hello"]
     assert result["steps"] == [
         {
@@ -40,3 +40,20 @@ def test_runner_completes_loop_with_mocks() -> None:
             "observation": "hello\n",
         }
     ]
+
+
+class NeverDoneModel:
+    def complete(self, messages: list[dict[str, str]]) -> tuple[str, str]:
+        return "keep going", "echo still working"
+
+
+
+def test_runner_returns_explicit_result_when_max_steps_reached() -> None:
+    env = FakeEnvironment()
+    runner = Runner(model=NeverDoneModel(), env=env, max_steps=2)
+
+    result = runner.run("test task")
+
+    assert result["result"] == "[max_steps reached without completion]"
+    assert env.commands == ["echo still working", "echo still working"]
+    assert len(result["steps"]) == 2

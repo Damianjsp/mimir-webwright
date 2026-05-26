@@ -18,16 +18,23 @@ class Environment:
 
     def run(self, command: str, timeout: int = 60) -> str:
         """Execute a shell command in the workspace and return combined output."""
-        result = subprocess.run(
-            command,
-            shell=True,
-            capture_output=True,
-            text=True,
-            timeout=timeout,
-            cwd=str(self.workspace),
-            check=False,
-        )
-        return result.stdout + result.stderr
+        try:
+            result = subprocess.run(
+                command,
+                shell=True,
+                capture_output=True,
+                text=True,
+                timeout=timeout,
+                cwd=str(self.workspace),
+                check=False,
+            )
+        except subprocess.TimeoutExpired:
+            return f"[timeout after {timeout}s] Command timed out: {command}"
+
+        output = result.stdout + result.stderr
+        if result.returncode != 0:
+            return f"[exit {result.returncode}]\n{output}"
+        return output
 
     def save_script(self, name: str, content: str) -> Path:
         """Persist a generated Python script in the scripts directory."""

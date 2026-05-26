@@ -33,12 +33,12 @@ class Runner:
             {"role": "user", "content": task},
         ]
         steps: list[dict[str, str]] = []
-        final_result = ""
+        result = ""
 
         for _ in range(self.max_steps):
             thinking, command = self.model.complete(messages)
             if "<done>" in command:
-                final_result = command
+                result = command
                 break
 
             observation = self.env.run(command)
@@ -56,5 +56,7 @@ class Runner:
                 }
             )
             messages.append({"role": "user", "content": f"<observation>{observation}</observation>"})
+        else:
+            result = "[max_steps reached without completion]"
 
-        return {"task": task, "steps": steps, "final_result": final_result}
+        return {"task": task, "steps": steps, "result": result}
