@@ -1,3 +1,16 @@
+Metadata-Version: 2.4
+Name: mimir-webwright
+Version: 0.1.0
+Summary: Webwright-based web agent framework for Mimir
+Requires-Python: >=3.11
+Description-Content-Type: text/markdown
+Requires-Dist: openai>=1.0
+Requires-Dist: playwright>=1.40
+Provides-Extra: dev
+Requires-Dist: pytest>=8.0; extra == "dev"
+Requires-Dist: ruff>=0.4; extra == "dev"
+Requires-Dist: mypy>=1.10; extra == "dev"
+
 # mimir-webwright
 
 Webwright-based web agent framework for Mimir. This repository provides a minimal Python harness for the classic loop of **model → bash → observe**, aimed at generating and running Playwright-based automation scripts from task prompts.
