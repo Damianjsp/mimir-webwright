@@ -1,0 +1,15 @@
+[Unit]
+Description=mimir-webwright — Run Pisos.com scraper every 6 hours
+Documentation=https://github.com/Damianjsp/mimir-webwright
+
+[Timer]
+# First run shortly after boot / timer enable
+OnBootSec=5min
+# Then every 6 hours
+OnUnitActiveSec=6h
+# Spread activations up to 10 minutes to avoid deadlocks with other timers
+RandomizedDelaySec=10min
+Unit=mimir-webwright-pisos.service
+
+[Install]
+WantedBy=timers.target
