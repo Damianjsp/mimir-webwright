@@ -18,6 +18,8 @@ class DbConfig:
     user: str
     password: str
     dbname: str
+    port: int = 5432
+    sslmode: str = "require"
 
 
 def load_db_config_from_env() -> DbConfig:
@@ -30,11 +32,19 @@ def load_db_config_from_env() -> DbConfig:
             return ""
         return value
 
+    port_str = os.environ.get("MIMIR_DB_PORT", "5432")
+    try:
+        port = int(port_str)
+    except ValueError:
+        port = 5432
+
     cfg = DbConfig(
         host=_get("MIMIR_DB_HOST"),
         user=_get("MIMIR_DB_USER"),
         password=_get("MIMIR_DB_PASSWORD"),
         dbname=_get("MIMIR_DB_NAME"),
+        port=port,
+        sslmode=os.environ.get("MIMIR_DB_SSLMODE", "require"),
     )
     if missing:
         raise RuntimeError(f"Missing env vars: {', '.join(missing)}")
@@ -47,7 +57,8 @@ def _connect(cfg: DbConfig) -> psycopg.Connection[Any]:
         user=cfg.user,
         password=cfg.password,
         dbname=cfg.dbname,
-        sslmode="require",
+        port=cfg.port,
+        sslmode=cfg.sslmode,
     )
 
 

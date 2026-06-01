@@ -5,13 +5,13 @@ build-backend = "setuptools.build_meta"
 [project]
 name = "mimir-webwright"
 version = "0.1.0"
-description = "Terminal-native web automation harness for Mimir, backed by LiteLLM and Playwright"
+description = "Terminal-native web automation harness for Mimir, backed by LiteLLM and REST APIs"
 readme = "README.md"
 requires-python = ">=3.11"
 authors = [{ name = "Damianjsp" }]
 dependencies = [
   "httpx>=0.27,<1",
-  "playwright>=1.45,<2",
+  "requests>=2.31",
   "pydantic>=2.7,<3",
   "python-dotenv>=1.0,<2",
   "typer>=0.12,<1",
