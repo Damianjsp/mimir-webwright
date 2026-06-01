@@ -20,10 +20,11 @@ if _ENV_FILE.exists():
 
 from mimir_webwright.tasks.football_api_fetcher import fetch_world_cup_odds  # noqa: E402
 from mimir_webwright.tasks.football_odds_db import (  # noqa: E402
-    _connect,
     insert_football_predictions,
     load_db_config_from_env,
 )
+
+import psycopg  # noqa: E402
 
 _PREFERRED_SEASON = 2026
 _FALLBACK_SEASON = 2022
@@ -44,7 +45,15 @@ def main() -> None:
 
     cfg = load_db_config_from_env()
     rows = [asdict(f) for f in fixtures]
-    with _connect(cfg) as conn:
+    conn_kwargs: dict[str, str | int] = {
+        "host": cfg.host,
+        "user": cfg.user,
+        "password": cfg.password,
+        "dbname": cfg.dbname,
+        "port": cfg.port,
+        "sslmode": cfg.sslmode,
+    }
+    with psycopg.connect(**conn_kwargs) as conn:
         inserted = insert_football_predictions(conn, rows)
 
     print(f"Fetched {len(fixtures)} fixtures (season {season}), inserted {inserted} rows")
