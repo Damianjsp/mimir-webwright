@@ -1,57 +1,57 @@
 # mimir-webwright
 
-Webwright-inspired, terminal-native web automation harness for Mimir.
-
-It keeps the artifact-first workflow from Microsoft Webwright:
-- generate or reuse Playwright scripts in `workspace/scripts/`
-- execute them in disposable browser sessions
-- persist logs, screenshots, JSON, and CSV under `workspace/runs/<timestamp>/`
+Webwright-based web agent framework for Mimir. This repository provides a minimal Python harness for the classic loop of **model → bash → observe**, aimed at generating and running Playwright-based automation scripts from task prompts.
 
 ## Features
 
-- LiteLLM/OpenAI-compatible model adapter pointing to `http://localhost:4000`
-- Reusable runner loop for `plan -> script -> execute -> observe`
-- First task: `pisos-scraper` for Pisos.com Madrid rentals
-- Outputs both JSON and CSV
-- Strict typing, pytest, ruff, mypy, GitHub Actions CI
+- LiteLLM/OpenAI-compatible model adapter
+- Workspace-aware shell execution environment
+- Iterative runner loop for agent-style task execution
+- Example task prompt for pisos.com scraping script generation
+- Tests with mocks so CI runs without a real LiteLLM endpoint
+
+## Project layout
+
+```text
+src/mimir_webwright/
+├── environment.py
+├── model.py
+├── runner.py
+└── tasks/
+    └── pisos_scraper.py
+```
 
 ## Quickstart
 
 ```bash
 python3 -m venv .venv
-source .venv/bin/activate
-pip install -e '.[dev]'
-playwright install chromium
-export LITELLM_API_KEY=...
-mimir-webwright pisos-scraper --zone madrid --max-price 1100 --min-rooms 2 --max-rooms 3
+.venv/bin/pip install -e '.[dev]'
+.venv/bin/ruff check src tests
+.venv/bin/pytest tests/ -v
 ```
 
-Artifacts are written to:
+## Usage example
 
-- `workspace/scripts/pisos_com_madrid.py`
-- `workspace/runs/<timestamp>/results.json`
-- `workspace/runs/<timestamp>/results.csv`
-- `workspace/runs/<timestamp>/run.log`
-- `workspace/runs/<timestamp>/screenshots/`
+```python
+from mimir_webwright.runner import Runner
+from mimir_webwright.tasks.pisos_scraper import get_task
 
-## CLI
-
-```bash
-mimir-webwright pisos-scraper --help
-mimir-webwright run-task pisos-scraper
+runner = Runner()
+result = runner.run(get_task())
+print(result)
 ```
 
 ## Configuration
 
-Environment variables:
+The model client reads `LITELLM_API_KEY` from the environment. If unset, it uses the placeholder value `dummy`, which is sufficient for local tests that mock external calls.
 
-- `LITELLM_BASE_URL` (default: `http://localhost:4000/v1`)
-- `LITELLM_API_KEY` (required for model calls)
-- `LITELLM_MODEL` (default: `litellm/gpt-5.4`)
-- `MIMIR_WEBWRIGHT_HEADLESS` (`true` by default)
+Default endpoint settings:
+
+- Base URL: `http://localhost:4000`
+- Model: `gpt-5.4`
 
 ## Notes
 
-- The current `pisos-scraper` task ships with a checked-in reusable Playwright script template so it can run deterministically from CI/dev machines.
-- The LiteLLM adapter is ready for future task-planning flows, even though the first task uses a curated prompt + reusable script path rather than autonomous script synthesis.
-- Web scraping targets can change their DOM at any time; selectors are isolated in one script file to keep maintenance surgical.
+- `workspace/scripts/` is intended for generated Playwright scripts.
+- `workspace/runs/` stores per-run artifacts and is gitignored.
+- This repository ships the harness and task prompt only; it does not perform live scraping during tests or CI.

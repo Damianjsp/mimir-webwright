@@ -1,0 +1,21 @@
+[Unit]
+Description=mimir-webwright — Football odds scraper (placeholder)
+Documentation=https://github.com/Damianjsp/mimir-webwright
+# This unit becomes active once the football-odds task PR is merged.
+# Until then the CLI exits cleanly with code 0 and logs a placeholder message.
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=oneshot
+EnvironmentFile=/home/damian/.config/mimir-webwright/env
+WorkingDirectory=/home/damian/persistent/mimir-webwright
+ExecStart=/home/damian/persistent/mimir-webwright/.venv/bin/python \
+    -m mimir_webwright.cli run --task football
+TimeoutStartSec=1800
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=mimir-webwright-football
+
+[Install]
+WantedBy=default.target

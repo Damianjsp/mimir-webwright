@@ -1,0 +1,23 @@
+[Unit]
+Description=mimir-webwright — Pisos.com rental scraper
+Documentation=https://github.com/Damianjsp/mimir-webwright
+# Only start when triggered by the timer; do not restart on failure (timer retries)
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=oneshot
+# Load secrets and configuration (LITELLM_API_KEY, etc.)
+EnvironmentFile=/home/damian/.config/mimir-webwright/env
+# Run from the repo root so relative workspace paths resolve correctly
+WorkingDirectory=/home/damian/persistent/mimir-webwright
+ExecStart=/home/damian/persistent/mimir-webwright/.venv/bin/python \
+    -m mimir_webwright.cli run --task pisos
+# Give Playwright / browser enough time to finish (30 min ceiling)
+TimeoutStartSec=1800
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=mimir-webwright-pisos
+
+[Install]
+WantedBy=default.target

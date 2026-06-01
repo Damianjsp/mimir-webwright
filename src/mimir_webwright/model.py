@@ -1,80 +1,41 @@
+"""LiteLLM-compatible model adapter."""
+
 from __future__ import annotations
 
 import os
-from dataclasses import dataclass
-from typing import Any
+import re
+from typing import Final
 
-import httpx
+from openai import OpenAI
+
+DEFAULT_BASE_URL: Final[str] = "http://localhost:4000"
+DEFAULT_MODEL: Final[str] = "gpt-5.4"
 
 
-@dataclass(frozen=True)
-class LiteLLMConfig:
-    """Configuration for the LiteLLM OpenAI-compatible endpoint."""
+class ModelEndpoint:
+    """Adapter for an OpenAI-compatible LiteLLM endpoint."""
 
-    base_url: str = "http://localhost:4000/v1"
-    api_key: str = ""
-    model: str = "litellm/gpt-5.4"
-    timeout_seconds: float = 120.0
-
-    @classmethod
-    def from_env(cls) -> LiteLLMConfig:
-        return cls(
-            base_url=os.environ.get("LITELLM_BASE_URL", cls.base_url),
-            api_key=os.environ.get("LITELLM_API_KEY", ""),
-            model=os.environ.get("LITELLM_MODEL", cls.model),
+    def __init__(self, base_url: str = DEFAULT_BASE_URL, model: str = DEFAULT_MODEL) -> None:
+        self.client = OpenAI(
+            base_url=base_url,
+            api_key=os.environ.get("LITELLM_API_KEY", "dummy"),
         )
+        self.model = model
 
+    def complete(self, messages: list[dict[str, str]]) -> tuple[str, str]:
+        """Return the model's parsed thinking and bash command."""
+        response = self.client.chat.completions.create(
+            model=self.model,
+            messages=messages,
+        )
+        content = response.choices[0].message.content or ""
+        return self._parse_response(content)
 
-class LiteLLMClient:
-    """Minimal chat-completions client for LiteLLM's OpenAI-compatible API."""
-
-    def __init__(
-        self,
-        config: LiteLLMConfig | None = None,
-        *,
-        transport: httpx.BaseTransport | None = None,
-    ) -> None:
-        self.config = config or LiteLLMConfig.from_env()
-        self._transport = transport
-        if not self.config.api_key:
-            raise RuntimeError("Missing LITELLM_API_KEY.")
-
-    def complete_json(
-        self,
-        *,
-        system_prompt: str,
-        user_prompt: str,
-        temperature: float = 0.2,
-    ) -> dict[str, Any]:
-        payload = {
-            "model": self.config.model,
-            "messages": [
-                {"role": "system", "content": system_prompt},
-                {"role": "user", "content": user_prompt},
-            ],
-            "temperature": temperature,
-            "response_format": {"type": "json_object"},
-        }
-        headers = {
-            "Authorization": f"Bearer {self.config.api_key}",
-            "Content-Type": "application/json",
-        }
-        with httpx.Client(
-            timeout=self.config.timeout_seconds,
-            transport=self._transport,
-        ) as client:
-            response = client.post(
-                f"{self.config.base_url.rstrip('/')}/chat/completions",
-                json=payload,
-                headers=headers,
-            )
-            response.raise_for_status()
-            data = response.json()
-
-        content = data["choices"][0]["message"]["content"]
-        if not isinstance(content, str):
-            raise RuntimeError("Expected string content from LiteLLM response.")
-        parsed = httpx.Response(200, text=content).json()
-        if not isinstance(parsed, dict):
-            raise RuntimeError("Expected JSON object from LiteLLM response.")
-        return parsed
+    def _parse_response(self, content: str) -> tuple[str, str]:
+        """Extract <thinking> and <bash> blocks from a model response."""
+        thinking_match = re.search(r"<thinking>(.*?)</thinking>", content, re.DOTALL)
+        bash_match = re.search(r"<bash>(.*?)</bash>", content, re.DOTALL)
+        return (
+            thinking_match.group(1).strip() if thinking_match else "",
+            bash_match.group(1).strip() if bash_match else content.strip(),
+        )

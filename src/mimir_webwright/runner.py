@@ -1,118 +1,62 @@
+"""Main Webwright runner loop."""
+
 from __future__ import annotations
 
-from pathlib import Path
+from .environment import Environment
+from .model import ModelEndpoint
 
-import typer
-from rich.console import Console
+SYSTEM_PROMPT = """You are a web agent. Given a task, write Playwright Python scripts to accomplish it.
+Always respond with:
+<thinking>your reasoning</thinking>
+<bash>the bash command to run</bash>
 
-from mimir_webwright.environment import WorkspaceEnvironment
-from mimir_webwright.tasks.football_odds import (
-    DEFAULT_SCRIPT_NAME as FOOTBALL_SCRIPT_NAME,
-)
-from mimir_webwright.tasks.football_odds import (
-    ensure_generated_script as ensure_football_script,
-)
-from mimir_webwright.tasks.pisos_scraper import (
-    DEFAULT_SCRIPT_NAME,
-    PisosFilters,
-    ensure_generated_script,
-)
-
-app = typer.Typer(help="Mimir Webwright runner")
-console = Console()
+When done, respond with <done>final result summary</done>"""
 
 
-def _repo_root() -> Path:
-    return Path(__file__).resolve().parents[2]
+class Runner:
+    """Coordinate model planning with shell execution and observations."""
 
+    def __init__(
+        self,
+        model: ModelEndpoint | None = None,
+        env: Environment | None = None,
+        max_steps: int = 10,
+    ) -> None:
+        self.model = model or ModelEndpoint()
+        self.env = env or Environment()
+        self.max_steps = max_steps
 
-@app.command("pisos-scraper")
-def pisos_scraper_command(
-    zone: str = typer.Option("madrid", help="Zone or neighborhood filter"),
-    max_price: int = typer.Option(1100, help="Maximum monthly rent in EUR"),
-    min_rooms: int = typer.Option(2, help="Minimum bedrooms"),
-    max_rooms: int = typer.Option(3, help="Maximum bedrooms"),
-    headful: bool = typer.Option(False, help="Run browser with UI"),
-) -> None:
-    """Run the reusable Pisos.com scraper task."""
+    def run(self, task: str) -> dict[str, object]:
+        """Execute the plan/act/observe loop for a single task."""
+        messages: list[dict[str, str]] = [
+            {"role": "system", "content": SYSTEM_PROMPT},
+            {"role": "user", "content": task},
+        ]
+        steps: list[dict[str, str]] = []
+        result = ""
 
-    environment = WorkspaceEnvironment(root_dir=_repo_root())
-    run_paths = environment.prepare_run("pisos_scraper")
-    script_path = ensure_generated_script(run_paths.scripts_dir)
-    filters = PisosFilters(
-        zone=zone,
-        max_price=max_price,
-        min_rooms=min_rooms,
-        max_rooms=max_rooms,
-    )
-    completed = environment.run_python_script(
-        script_path,
-        run_paths,
-        [
-            "--zone",
-            filters.zone,
-            "--max-price",
-            str(filters.max_price),
-            "--min-rooms",
-            str(filters.min_rooms),
-            "--max-rooms",
-            str(filters.max_rooms),
-            *( ["--headful"] if headful else []),
-        ],
-    )
-    if completed.returncode != 0:
-        console.print(f"[red]Task failed.[/red] See {run_paths.log_path}")
-        raise typer.Exit(code=completed.returncode)
+        for _ in range(self.max_steps):
+            thinking, command = self.model.complete(messages)
+            if "<done>" in command:
+                result = command
+                break
 
-    console.print(f"[green]Script reused:[/green] {run_paths.scripts_dir / DEFAULT_SCRIPT_NAME}")
-    console.print(f"[green]JSON:[/green] {run_paths.json_path}")
-    console.print(f"[green]CSV:[/green] {run_paths.csv_path}")
-    console.print(f"[green]Log:[/green] {run_paths.log_path}")
+            observation = self.env.run(command)
+            steps.append(
+                {
+                    "thinking": thinking,
+                    "command": command,
+                    "observation": observation,
+                }
+            )
+            messages.append(
+                {
+                    "role": "assistant",
+                    "content": f"<thinking>{thinking}</thinking><bash>{command}</bash>",
+                }
+            )
+            messages.append({"role": "user", "content": f"<observation>{observation}</observation>"})
+        else:
+            result = "[max_steps reached without completion]"
 
-
-@app.command("football-odds")
-def football_odds_command(
-    headful: bool = typer.Option(False, help="Run browser with UI"),
-) -> None:
-    """Generate+run the football odds scraper.
-
-    The generated Playwright script is stored in workspace/scripts/football_odds_scraper.py
-    and writes JSON to workspace/runs/<timestamp>/football_odds.json
-    """
-
-    environment = WorkspaceEnvironment(root_dir=_repo_root())
-    run_paths = environment.prepare_run("football_odds")
-    script_path = ensure_football_script(run_paths.scripts_dir)
-
-    cli_args = ["--headful"] if headful else []
-    completed = environment.run_python_script(
-        script_path,
-        run_paths,
-        cli_args,
-    )
-    if completed.returncode != 0:
-        console.print(f"[red]Task failed.[/red] See {run_paths.log_path}")
-        raise typer.Exit(code=completed.returncode)
-
-    script_output_path = run_paths.scripts_dir / FOOTBALL_SCRIPT_NAME
-    console.print(f"[green]Script generated:[/green] {script_output_path}")
-    console.print(f"[green]JSON:[/green] {run_paths.run_dir / 'football_odds.json'}")
-    console.print(f"[green]Log:[/green] {run_paths.log_path}")
-
-
-@app.command("run-task")
-def run_task(task_name: str) -> None:
-    """Compatibility entrypoint for future task registry expansion."""
-
-    if task_name == "pisos-scraper":
-        pisos_scraper_command()
-        return
-    if task_name == "football-odds":
-        football_odds_command()
-        return
-
-    raise typer.BadParameter("Supported tasks: 'pisos-scraper', 'football-odds'.")
-
-
-if __name__ == "__main__":
-    app()
+        return {"task": task, "steps": steps, "result": result}

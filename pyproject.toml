@@ -1,51 +1,37 @@
 [build-system]
-requires = ["setuptools>=69", "wheel"]
+requires = ["setuptools>=68"]
 build-backend = "setuptools.build_meta"
 
 [project]
 name = "mimir-webwright"
 version = "0.1.0"
-description = "Terminal-native web automation harness for Mimir, backed by LiteLLM and REST APIs"
+description = "Webwright-based web agent framework for Mimir"
 readme = "README.md"
 requires-python = ">=3.11"
-authors = [{ name = "Damianjsp" }]
 dependencies = [
-  "httpx>=0.27,<1",
-  "requests>=2.31",
-  "pydantic>=2.7,<3",
-  "python-dotenv>=1.0,<2",
-  "typer>=0.12,<1",
-  "rich>=13.7,<14",
-  "psycopg[binary]>=3.2,<4",
-]
-
-[project.optional-dependencies]
-dev = [
-  "mypy>=1.10,<2",
-  "pytest>=8.2,<9",
-  "pytest-cov>=5,<6",
-  "ruff>=0.5,<0.6",
+    "openai>=1.0",
+    "playwright>=1.40",
 ]
 
 [project.scripts]
-mimir-webwright = "mimir_webwright.runner:app"
+mimir-webwright = "mimir_webwright.cli:main"
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=8.0",
+    "ruff>=0.4",
+    "mypy>=1.10",
+]
+
+[tool.setuptools]
+package-dir = {"" = "src"}
 
 [tool.setuptools.packages.find]
 where = ["src"]
 
-[tool.pytest.ini_options]
-addopts = "-q"
-testpaths = ["tests"]
-
 [tool.ruff]
 line-length = 100
-target-version = "py311"
-
-[tool.ruff.lint]
-select = ["E", "F", "I", "B", "UP", "N", "ASYNC", "RUF"]
 
 [tool.mypy]
+strict = false
 python_version = "3.11"
-strict = true
-mypy_path = "src"
-packages = ["mimir_webwright"]

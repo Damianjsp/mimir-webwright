@@ -1,9 +1,7 @@
-.venv/
+workspace/runs/
 __pycache__/
-.pytest_cache/
-.mypy_cache/
-.ruff_cache/
+.venv/
 *.pyc
-workspace/runs/*
-!workspace/runs/.gitkeep
+
 *.egg-info/
+src/*.egg-info/
